@@ -1,0 +1,11 @@
+{
+  "source": "care_dental_fe/src/style/index.css",
+  "revision": "b582ec644ecf3986c6de73a2f0a3ab2e69edc7ae",
+  "careUiRevision": "0dda891",
+  "sourceSha256": "7f720aa800c34343ed926d68e4b5873c39740d1711373e1b5314400ffae892bd",
+  "changes": [
+    "Keep only the Care UI theme before the dental finding tokens.",
+    "Retarget the container and retain the host font.",
+    "Use monospace for numeric inputs."
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "plugin": "care_vision_prescription_fe",
+  "upstream": "https://github.com/ohcnetwork/care_teleicu_devices_fe.git",
+  "ref": "main",
+  "revision": "012bb26c5236c1db1f3faaaae84e1e04cd4e73d7",
+  "scaffold": "care-plug-engineering/scripts/new-mfe-plug.sh",
+  "adaptation": "Allowlist export into an existing workspace. No cleanup, commits, or install.",
+  "files": [
+    {
+      "source": "package.json",
+      "target": "package.json",
+      "sha256": "e232fcc01efbc9bdba77ba9dced771e26204707cad351eb38d3a3e9b4246ede7",
+      "status": "preserved"
+    },
+    {
+      "source": "vite.config.mts",
+      "target": "vite.config.mts",
+      "sha256": "daa508c9a00cb9a81ce06cd60549f661278afffcca2aece3244577f03260615c",
+      "status": "preserved"
+    },
+    {
+      "source": "tsconfig.json",
+      "target": "tsconfig.json",
+      "sha256": "3f24c40e2f822c632d0448261986f1422a255dc00733640a1f7a565afb42d740",
+      "status": "preserved"
+    },
+    {
+      "source": "tsconfig.app.json",
+      "target": "tsconfig.app.json",
+      "sha256": "aa48939360d470668106b5e28e54fb2a7a558c0e1d401be22aa0d48f2fe2c913",
+      "status": "preserved"
+    },
+    {
+      "source": "tsconfig.node.json",
+      "target": "tsconfig.node.json",
+      "sha256": "c4592c3359c1c20bbf2af2c2f1fd8deb66e858ac15ec5c2fb0845fae89447bd5",
+      "status": "preserved"
+    },
+    {
+      "source": "eslint.config.mjs",
+      "target": "eslint.config.js",
+      "sha256": "453fa85fff29db4636af76016a33aba4a5cb402f056b493871d14139d1b2e741",
+      "status": "preserved"
+    },
+    {
+      "source": ".prettierrc.json",
+      "target": ".prettierrc",
+      "sha256": "d7ef11904227bc8478d97cb295bfd8090e9316ef8e24a8fb33270031fea80405",
+      "status": "preserved"
+    },
+    {
+      "source": ".gitignore",
+      "target": ".gitignore",
+      "sha256": "bdb20db32cc7140a19b2c8c5a90ce66a274d50743868582375dfb9a2d6a0edb8",
+      "status": "preserved"
+    },
+    {
+      "source": "components.json",
+      "target": "components.json",
+      "sha256": "e7f5ef88d23419bf2824d57224500f86feaa28d146217868e5a6e4d1ff984526",
+      "status": "preserved"
+    },
+    {
+      "source": "src/lib/utils.ts",
+      "target": "src/lib/utils.ts",
+      "sha256": "3d35ea40714dbd670ba2cbd4e67467b1f6ae694ada13fc06bb44b7784ce908f8",
+      "status": "preserved"
+    },
+    {
+      "source": "src/hooks/useTranslation.ts",
+      "target": "src/hooks/useTranslation.ts",
+      "sha256": "8268bb411fd1c1274e51dfc0e467d87992e37004153eb1a11289d337195442a5",
+      "status": "preserved"
+    },
+    {
+      "source": "scripts/sort-locales.ts",
+      "target": "scripts/sort-locales.ts",
+      "sha256": "2eb49b190766971545067b9a16bbc6cf5082a1aa2b94e759940412c6ddbc73f5",
+      "status": "copied"
+    },
+    {
+      "source": "LICENSE",
+      "target": "scripts/licenses/teleicu-LICENSE",
+      "sha256": "5314a3d0399d3c2add5d0b6f61aefaf77b03f17f8e50fb52f3bb2376e0d467cf",
+      "status": "copied"
+    }
+  ]
+}

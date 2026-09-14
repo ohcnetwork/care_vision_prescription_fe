@@ -1,0 +1,77 @@
+{
+  "registry": "https://careui.ohc.network",
+  "fetchedAt": "2026-09-12T11:39:53.068Z",
+  "importPathChange": "@/hooks/* and @/components/careui/* map to @/components/ui/*.",
+  "items": {
+    "button": {
+      "url": "https://careui.ohc.network/registry/care-ui/button/button.json",
+      "files": [
+        {
+          "path": "src/components/ui/button.tsx",
+          "source": "registry/care-ui/button/button.tsx",
+          "sha256": "4a1a809409968217506733392ed75a5aa4185f5dc08f59e764733158402ab778"
+        }
+      ]
+    },
+    "input": {
+      "url": "https://careui.ohc.network/registry/care-ui/input/input.json",
+      "files": [
+        {
+          "path": "src/components/ui/input.tsx",
+          "source": "registry/care-ui/input/input.tsx",
+          "sha256": "b51a69bd05c838a1fceec65fcb8dd9e1fe5ab9d4da1ae530ac420dbeeac1776d"
+        }
+      ]
+    },
+    "label": {
+      "url": "https://careui.ohc.network/registry/care-ui/label/label.json",
+      "files": [
+        {
+          "path": "src/components/ui/label.tsx",
+          "source": "registry/care-ui/label/label.tsx",
+          "sha256": "b3564255745d2d1aebd5575e33c766730d8a38ecd53392fa0d759a3e212751a6"
+        }
+      ]
+    },
+    "native-select": {
+      "url": "https://careui.ohc.network/registry/care-ui/native-select/native-select.json",
+      "files": [
+        {
+          "path": "src/components/ui/native-select.tsx",
+          "source": "registry/care-ui/native-select/native-select.tsx",
+          "sha256": "b8347e10dea2825d2b969a0786afc3f4e7455ab748bd5a9b3d1753d428dc272f"
+        }
+      ]
+    },
+    "table": {
+      "url": "https://careui.ohc.network/registry/care-ui/table/table.json",
+      "files": [
+        {
+          "path": "src/components/ui/table.tsx",
+          "source": "registry/care-ui/table/table.tsx",
+          "sha256": "d2598c1a6efa8b0203ca7c512c415f018c7663a7e03b172c67d5f44ec7446867"
+        }
+      ]
+    },
+    "textarea": {
+      "url": "https://careui.ohc.network/registry/care-ui/textarea/textarea.json",
+      "files": [
+        {
+          "path": "src/components/ui/textarea.tsx",
+          "source": "registry/care-ui/textarea/textarea.tsx",
+          "sha256": "099f63ab8f4f60c8d0ee59d9c11717302c0e8bd2af8bd09b90d036e6607892ff"
+        }
+      ]
+    },
+    "use-auto-space": {
+      "url": "https://careui.ohc.network/registry/care-ui/use-auto-space/use-auto-space.json",
+      "files": [
+        {
+          "path": "src/components/ui/use-auto-space.ts",
+          "source": "registry/care-ui/use-auto-space/use-auto-space.ts",
+          "sha256": "49fc29b27f3a8a7255d49ae2ea5ee2da1739008644dfc6eba0e2f55e551ecad0"
+        }
+      ]
+    }
+  }
+}

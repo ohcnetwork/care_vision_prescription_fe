@@ -1,0 +1,83 @@
+.vision-field-message {
+  min-height: 2rem;
+  padding-top: 0.25rem;
+  color: var(--destructive);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  white-space: normal;
+}
+
+.vision-optical-table {
+  min-width: 900px;
+  table-layout: fixed;
+}
+
+.vision-contact-table {
+  min-width: 760px;
+  table-layout: fixed;
+}
+
+.vision-optical-table th,
+.vision-contact-table th,
+.vision-summary-table th {
+  white-space: normal;
+}
+
+.vision-summary-table {
+  min-width: 620px;
+}
+
+.vision-summary-table td,
+.vision-summary-table th {
+  padding: 0.5rem;
+}
+
+.vision-signature {
+  break-inside: avoid;
+}
+
+@media print {
+  .care-vision-prescription-fe {
+    color-scheme: light;
+    --foreground: #111111 !important;
+    --card: #ffffff !important;
+    --card-foreground: #111111 !important;
+    --muted-foreground: #404040 !important;
+    --muted: #f5f5f5 !important;
+    --border: #b3b3b3 !important;
+    --destructive: #991b1b !important;
+    padding: 0;
+    border: 0;
+    background: #ffffff;
+    color: #111111;
+    font-size: 10pt;
+  }
+
+  .vision-controls,
+  .vision-history {
+    display: none;
+  }
+
+  .vision-summary-table {
+    min-width: 0;
+    width: 100%;
+    table-layout: fixed;
+    font-size: 9pt;
+  }
+
+  .vision-summary-table th,
+  .vision-summary-table td {
+    padding: 0.35rem;
+    overflow-wrap: anywhere;
+  }
+
+  .vision-summary-table tr,
+  .vision-summary h4 {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+
+  .vision-summary [data-slot="table-container"] {
+    overflow: visible;
+  }
+}
