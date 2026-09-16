@@ -1,9 +1,20 @@
-import { ChevronDown, ChevronRight, CopyPlus } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ChevronDown,
+  ChevronRight,
+  CopyPlus,
+} from "lucide-react";
 import { useId, useState } from "react";
 
 import { useTranslation } from "../../hooks/useTranslation";
 import { EYES } from "../../lib/constants";
 import { formatRxLine } from "../../lib/notation";
+import {
+  canTranspose,
+  formatTransposed,
+  getClinicalHints,
+  transposeLens,
+} from "../../lib/optics";
 import {
   type Eye,
   type LensSpecification,
@@ -27,7 +38,8 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { NumericCombobox } from "./NumericCombobox";
+import { DialField } from "./DialField";
+import { LensMiniGlyph } from "./LensMiniGlyph";
 import { PrismFields } from "./PrismFields";
 
 export interface LensTableProps {
@@ -37,6 +49,11 @@ export interface LensTableProps {
     product: Product,
     eye: Eye,
     update: (lens: LensSpecification) => LensSpecification,
+  ) => void;
+  /** Changes both eyes in 1 step, so the host receives 1 value. */
+  onUpdateEyes: (
+    product: Product,
+    update: (lens: LensSpecification, eye: Eye) => LensSpecification,
   ) => void;
   errorFor: (key: string) => string | undefined;
   onTouched: (key: string) => void;
@@ -64,6 +81,7 @@ export function LensTable({
   prescription,
   product,
   onUpdate,
+  onUpdateEyes,
   errorFor,
   onTouched,
 }: LensTableProps) {
@@ -83,19 +101,21 @@ export function LensTable({
   const left = getLens(prescription, product, "left");
   const canCopy =
     !!right && hasLensValues(right) && !(left && hasLensValues(left));
+  const canTransposeAny =
+    canTranspose(right, product) || canTranspose(left, product);
+  const hints = getClinicalHints(prescription, product);
 
   return (
     <div className="space-y-3">
       <Table aria-label={t(product)} className="vision-optical-table">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-20">{t("eye")}</TableHead>
+            <TableHead className="w-2/5">{t("eye")}</TableHead>
             {fields.map((field) => (
-              <TableHead key={field} className="w-24 text-right">
+              <TableHead key={field} className="text-right">
                 {t(`${field}_unit`)}
               </TableHead>
             ))}
-            <TableHead>{t("reads_as")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -109,17 +129,47 @@ export function LensTable({
             ) => onUpdate(product, eye, change);
             return (
               <TableRow key={eye}>
-                <TableHead scope="row" className="pt-4 align-top">
-                  <span className="block text-foreground">{t(eye)}</span>
-                  <span className="font-mono text-xs font-normal text-muted-foreground">
-                    {t(`${eye}_short`)}
-                  </span>
+                <TableHead scope="row" className="align-top font-normal">
+                  {/* The glyph is as tall as the row already is. The 3 text
+                      lines beside it fit in that height, so the cell adds
+                      none. */}
+                  <div className="flex items-center gap-3">
+                    <LensMiniGlyph
+                      lens={getLens(prescription, product, eye)}
+                      product={product}
+                      eye={eye}
+                    />
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-medium text-foreground">
+                          {t(eye)}
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {t(`${eye}_short`)}
+                        </span>
+                      </div>
+                      {/* The line repeats the row in the notation that a
+                          clinician reads on a prescription. The second line
+                          shows the same lens in the other cylinder form. */}
+                      <span
+                        className="block font-mono text-xs whitespace-pre-wrap text-muted-foreground"
+                        aria-live="polite"
+                      >
+                        {formatRxLine(lens, product)}
+                      </span>
+                      {formatTransposed(lens, product) && (
+                        <span className="block font-mono text-xs whitespace-pre-wrap text-muted-foreground/70">
+                          {t("other_form")}: {formatTransposed(lens, product)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </TableHead>
                 {fields.map((field) => {
                   const key = fieldKey(product, eye, field);
                   return (
                     <TableCell key={field} className="align-top">
-                      <NumericCombobox
+                      <DialField
                         id={`${id}-${eye}-${field}`}
                         label={label(t(`${field}_unit`))}
                         kind={kindForField(field)}
@@ -137,17 +187,6 @@ export function LensTable({
                     </TableCell>
                   );
                 })}
-                <TableCell className="pt-4 align-top">
-                  {/* The line repeats the row in the notation that a clinician
-                      reads on a prescription. It shows a transposed value at a
-                      glance. */}
-                  <span
-                    className="font-mono text-xs whitespace-pre-wrap text-muted-foreground"
-                    aria-live="polite"
-                  >
-                    {formatRxLine(lens, product)}
-                  </span>
-                </TableCell>
               </TableRow>
             );
           })}
@@ -171,6 +210,19 @@ export function LensTable({
         </Button>
         <Button
           type="button"
+          variant="outline"
+          size="sm"
+          disabled={!canTransposeAny}
+          title={canTransposeAny ? undefined : t("transpose_hint")}
+          onClick={() =>
+            onUpdateEyes(product, (lens) => transposeLens(lens, product))
+          }
+        >
+          <ArrowLeftRight className="size-3.5" aria-hidden="true" />
+          {t("transpose")}
+        </Button>
+        <Button
+          type="button"
           variant="ghost"
           size="sm"
           aria-expanded={showPrism}
@@ -188,6 +240,23 @@ export function LensTable({
           {t("prism")}
         </Button>
       </div>
+
+      {hints.length > 0 && (
+        <ul
+          role="status"
+          aria-label={t("hints")}
+          className="vision-hints space-y-1 text-xs text-amber-700 dark:text-amber-400"
+        >
+          {hints.map((hint) => (
+            <li key={`${hint.message}-${hint.eye ?? ""}`}>
+              {t(hint.message, {
+                ...hint.values,
+                eye: hint.eye ? t(hint.eye) : "",
+              })}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {showPrism && (
         <PrismFields

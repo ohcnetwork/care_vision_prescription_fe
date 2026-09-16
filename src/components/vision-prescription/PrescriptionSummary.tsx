@@ -23,13 +23,11 @@ import {
 interface PrescriptionSummaryProps {
   prescription: VisionPrescription;
   note?: string;
-  showSignature?: boolean;
 }
 
 export function PrescriptionSummary({
   prescription,
   note,
-  showSignature = true,
 }: PrescriptionSummaryProps) {
   const { t, i18n } = useTranslation();
   const prescriber = prescription.context?.prescriber;
@@ -203,21 +201,6 @@ export function PrescriptionSummary({
           <h4 className="font-medium">{t("note")}</h4>
           <p className="break-words whitespace-pre-wrap">{note}</p>
         </section>
-      )}
-      {showSignature && (
-        <div className="vision-signature space-y-5 border-t pt-3 text-sm">
-          <p className="text-xs text-muted-foreground">{t("signature_hint")}</p>
-          <div className="ml-auto max-w-72 space-y-1 border-t border-foreground pt-2">
-            <p className="font-medium">{t("signature")}</p>
-            <p>{prescriber?.display ?? t("prescriber_unknown")}</p>
-            {prescriber?.qualification && <p>{prescriber.qualification}</p>}
-            {prescriber?.registration && (
-              <p>
-                {t("registration")}: {prescriber.registration}
-              </p>
-            )}
-          </div>
-        </div>
       )}
     </div>
   );

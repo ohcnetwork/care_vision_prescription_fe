@@ -113,7 +113,7 @@ export function localDate(date = new Date()): string {
 export function newPrescription(now = new Date()): VisionPrescription {
   return {
     schemaVersion: 1,
-    status: "draft",
+    status: "active",
     created: now.toISOString(),
     dateWritten: localDate(now),
     lensSpecification: [],

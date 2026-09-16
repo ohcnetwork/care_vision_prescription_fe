@@ -1,3 +1,13 @@
+/* The lens glyph. The prism colour needs contrast on both themes. */
+:root {
+  --vision-axis: var(--primary);
+  --vision-prism: #ea580c;
+}
+
+.dark {
+  --vision-prism: #fb923c;
+}
+
 .vision-field-message {
   min-height: 2rem;
   padding-top: 0.25rem;
@@ -8,7 +18,7 @@
 }
 
 .vision-optical-table {
-  min-width: 900px;
+  min-width: 760px;
   table-layout: fixed;
 }
 
@@ -30,10 +40,6 @@
 .vision-summary-table td,
 .vision-summary-table th {
   padding: 0.5rem;
-}
-
-.vision-signature {
-  break-inside: avoid;
 }
 
 @media print {

@@ -2,7 +2,7 @@ import { useId, useMemo, useState } from "react";
 
 import { usePrescriptionContext } from "../../hooks/usePrescriptionContext";
 import { useTranslation } from "../../hooks/useTranslation";
-import { STATUSES, VISION_PRESCRIPTION_TYPE } from "../../lib/constants";
+import { EYES, STATUSES, VISION_PRESCRIPTION_TYPE } from "../../lib/constants";
 import { PLUG_ROOT_CLASS } from "../../lib/plug-root";
 import {
   type Eye,
@@ -99,6 +99,17 @@ export default function VisionPrescriptionInput({
     eye: Eye,
     update: (lens: LensSpecification) => LensSpecification,
   ) => commit(updateLens(prescription, product, eye, update));
+  const onUpdateEyes = (
+    product: Product,
+    update: (lens: LensSpecification, eye: Eye) => LensSpecification,
+  ) =>
+    commit(
+      EYES.reduce(
+        (current, eye) =>
+          updateLens(current, product, eye, (lens) => update(lens, eye)),
+        prescription,
+      ),
+    );
 
   const clear = () => {
     onChange([], "");
@@ -222,6 +233,7 @@ export default function VisionPrescriptionInput({
               prescription={prescription}
               product="lens"
               onUpdate={onUpdate}
+              onUpdateEyes={onUpdateEyes}
               errorFor={errorFor}
               onTouched={onTouched}
             />
@@ -237,6 +249,7 @@ export default function VisionPrescriptionInput({
               prescription={prescription}
               product="contact"
               onUpdate={onUpdate}
+              onUpdateEyes={onUpdateEyes}
               errorFor={errorFor}
               onTouched={onTouched}
             />

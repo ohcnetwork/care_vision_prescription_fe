@@ -23,8 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
+import { DialField } from "./DialField";
 import type { LensTableProps } from "./LensTable";
-import { NumericCombobox } from "./NumericCombobox";
 
 const DETAIL_FIELDS = ["backCurve", "diameter", "color", "brand"] as const;
 
@@ -44,7 +44,7 @@ export function ContactDetails({
   onUpdate,
   errorFor,
   onTouched,
-}: Omit<LensTableProps, "product">) {
+}: Omit<LensTableProps, "product" | "onUpdateEyes">) {
   const { t } = useTranslation();
   const id = useId();
 
@@ -95,7 +95,7 @@ function DetailTable({
   onUpdate,
   errorFor,
   onTouched,
-}: Omit<LensTableProps, "product"> & { id: string }) {
+}: Omit<LensTableProps, "product" | "onUpdateEyes"> & { id: string }) {
   const { t } = useTranslation();
 
   return (
@@ -133,7 +133,7 @@ function DetailTable({
                 const key = fieldKey("contact", eye, field);
                 return (
                   <TableCell key={field} className="align-top">
-                    <NumericCombobox
+                    <DialField
                       id={`${id}-${eye}-${field}`}
                       label={label(
                         t(
@@ -163,7 +163,7 @@ function DetailTable({
               <TableCell className="align-top">
                 <div className="flex gap-1">
                   <div className="w-24">
-                    <NumericCombobox
+                    <DialField
                       id={`${id}-${eye}-duration`}
                       label={label(t("duration"))}
                       kind="duration"

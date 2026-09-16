@@ -101,7 +101,6 @@ export function PrescriptionHistory({
                   <PrescriptionSummary
                     prescription={entry.answer.prescription}
                     note={entry.note}
-                    showSignature={false}
                   />
                 ) : (
                   <p role="alert" className="text-sm text-destructive">

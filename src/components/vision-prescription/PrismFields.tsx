@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { NumericCombobox } from "./NumericCombobox";
+import { DialField } from "./DialField";
 
 export interface PrismFieldsProps {
   prescription: VisionPrescription;
@@ -104,7 +104,7 @@ export function PrismFields({
                     <TableCell key={plane} className="align-top">
                       <div className="flex max-w-xs items-start gap-1">
                         <div className="w-24 shrink-0">
-                          <NumericCombobox
+                          <DialField
                             id={`${id}-${eye}-${plane}-amount`}
                             label={label(
                               `${t(`prism_${plane}`)} ${t("prism_amount")}`,

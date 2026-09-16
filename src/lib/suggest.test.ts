@@ -5,7 +5,10 @@ import { newLens } from "./prescription";
 import { validPrescription } from "./prescription.test";
 import {
   type SuggestKind,
+  dialSpec,
   kindForField,
+  snapValue,
+  stepValue,
   suggestValues,
   suggestionLabel,
 } from "./suggest";
@@ -167,4 +170,30 @@ test("a selected label reads back as the same number", () => {
       assert.equal(Number(suggestionLabel(value, kind)), value);
     }
   }
+});
+
+test("stepValue moves by one step and starts from 0", () => {
+  assert.equal(stepValue("dioptre", -2.25, 1), -2);
+  assert.equal(stepValue("dioptre", -2.25, -1), -2.5);
+  assert.equal(stepValue("dioptre", undefined, 1), 0.25);
+  assert.equal(stepValue("axis", 90, 1), 91);
+  assert.equal(stepValue("axis", 90, 1, true), 95);
+  assert.equal(stepValue("dioptre", 1, 1, true), 2);
+});
+
+test("stepValue stops at the bounds and leaves text alone", () => {
+  assert.equal(stepValue("axis", 180, 1), 180);
+  assert.equal(stepValue("axis", 0, -1), 0);
+  assert.equal(stepValue("axis", 178, 1, true), 180);
+  assert.equal(stepValue("dioptre", 35, 1), 35.25);
+  assert.equal(stepValue("dioptre", "-2.", 1), undefined);
+});
+
+test("snapValue rounds to the step and stays inside the bounds", () => {
+  assert.equal(snapValue("dioptre", -2.3), -2.25);
+  assert.equal(snapValue("dioptre", -2.4), -2.5);
+  assert.equal(snapValue("axis", 180.4), 180);
+  assert.equal(snapValue("axis", -3), 0);
+  assert.equal(snapValue("backCurve", 8.64), 8.6);
+  assert.equal(dialSpec("add").common?.[0], 0.75);
 });

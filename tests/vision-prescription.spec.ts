@@ -121,12 +121,12 @@ test("record, restore, read, compare, and print a prescription in Care", async (
   await expect(question).toContainText(decoded.context?.prescriber?.display ?? "");
 
   await page.goto(`${responsePath}/print`);
-  await expect(question.locator(".vision-signature")).toBeVisible();
+  await expect(question.locator(".vision-summary")).toBeVisible();
   await expect(page.getByText(fixture.facilityName, { exact: false }).first()).toBeVisible();
   await page.emulateMedia({ media: "print" });
   await page.evaluate(() => document.documentElement.classList.add("dark"));
   await expect(question).toHaveCSS("background-color", "rgb(255, 255, 255)");
-  await expect(question.locator(".vision-signature")).toBeVisible();
+  await expect(question.locator(".vision-summary")).toBeVisible();
   await page.pdf({ path: testInfo.outputPath("vision-prescription.pdf"), format: "A4", printBackground: true });
   await page.emulateMedia({ media: "screen" });
   await page.evaluate(() => document.documentElement.classList.remove("dark"));

@@ -1,4 +1,4 @@
-import type { NumericField } from "./prescription";
+import type { NumericField, NumericValue } from "./prescription";
 
 /**
  * Generated dropdown values for the numeric fields.
@@ -14,6 +14,8 @@ export type SuggestKind =
 interface SuggestSpec {
   /** Matches the quantisation that `validate.ts` enforces. */
   step: number;
+  /** The step for Shift + arrow key. */
+  bigStep: number;
   min: number;
   max: number;
   decimals: number;
@@ -27,6 +29,7 @@ const SPECS: Record<SuggestKind, SuggestSpec> = {
   // validate.ts accepts any 0.25 step. +/-30 D covers the prescribable range.
   dioptre: {
     step: 0.25,
+    bigStep: 1,
     min: -30,
     max: 30,
     decimals: 2,
@@ -35,6 +38,7 @@ const SPECS: Record<SuggestKind, SuggestSpec> = {
   // A reading addition is positive in practice.
   add: {
     step: 0.25,
+    bigStep: 1,
     min: 0.25,
     max: 6,
     decimals: 2,
@@ -44,6 +48,7 @@ const SPECS: Record<SuggestKind, SuggestSpec> = {
   // validate.ts requires an integer from 0 to 180.
   axis: {
     step: 1,
+    bigStep: 5,
     min: 0,
     max: 180,
     decimals: 0,
@@ -55,6 +60,7 @@ const SPECS: Record<SuggestKind, SuggestSpec> = {
   // validate.ts requires a non-negative amount.
   prism: {
     step: 0.25,
+    bigStep: 1,
     min: 0,
     max: 20,
     decimals: 2,
@@ -64,6 +70,7 @@ const SPECS: Record<SuggestKind, SuggestSpec> = {
   // validate.ts requires a value above 0. These are contact lens base curves.
   backCurve: {
     step: 0.1,
+    bigStep: 0.5,
     min: 6,
     max: 10.5,
     decimals: 1,
@@ -73,6 +80,7 @@ const SPECS: Record<SuggestKind, SuggestSpec> = {
   // validate.ts requires a value above 0. These are contact lens diameters.
   diameter: {
     step: 0.1,
+    bigStep: 0.5,
     min: 8,
     max: 16,
     decimals: 1,
@@ -82,6 +90,7 @@ const SPECS: Record<SuggestKind, SuggestSpec> = {
   // validate.ts requires a value above 0.
   duration: {
     step: 1,
+    bigStep: 7,
     min: 1,
     max: 730,
     decimals: 0,
@@ -89,6 +98,28 @@ const SPECS: Record<SuggestKind, SuggestSpec> = {
     common: [1, 7, 14, 30, 60, 90, 180, 365],
   },
 };
+
+/** The part of a spec that the dial popup needs to draw itself. */
+export type DialSpec = Readonly<
+  Pick<SuggestSpec, "step" | "bigStep" | "min" | "max" | "decimals" | "common">
+>;
+
+export function dialSpec(kind: SuggestKind): DialSpec {
+  return SPECS[kind];
+}
+
+/**
+ * Snaps a value to the nearest step inside the bounds. The dial uses this for
+ * a drag or a wheel, where the pointer lands between two steps.
+ */
+export function snapValue(kind: SuggestKind, value: number): number {
+  const spec = SPECS[kind];
+  const snapped = quantize(
+    Math.round(value / spec.step) * spec.step,
+    spec.decimals,
+  );
+  return Math.min(spec.max, Math.max(spec.min, snapped));
+}
 
 export function kindForField(field: NumericField): SuggestKind {
   switch (field) {
@@ -103,6 +134,29 @@ export function kindForField(field: NumericField): SuggestKind {
     default:
       return "dioptre";
   }
+}
+
+/**
+ * Moves a value by one step, as an arrow key on a phoropter dial does.
+ *
+ * An empty field starts from 0. The result stays inside the suggestion
+ * bounds. A value that is not a number does not move.
+ */
+export function stepValue(
+  kind: SuggestKind,
+  value: NumericValue | undefined,
+  direction: 1 | -1,
+  big = false,
+): number | undefined {
+  if (value !== undefined && typeof value !== "number") return undefined;
+  const spec = SPECS[kind];
+  const start = value ?? 0;
+  const step = big ? spec.bigStep : spec.step;
+  const next = quantize(start + direction * step, spec.decimals);
+  // A typed value outside the bounds keeps its freedom. The clamp only stops
+  // a key from pushing a usual value past the bounds.
+  if (start < spec.min || start > spec.max) return next;
+  return Math.min(spec.max, Math.max(spec.min, next));
 }
 
 function quantize(value: number, decimals: number): number {

@@ -26,12 +26,12 @@ Enter `0` for a plano lens.
 
 The question has these fields:
 
-| Area | Fields |
-| --- | --- |
-| Prescription | Status, date written, note |
-| Spectacles | Sphere, cylinder, axis, add, horizontal prism, vertical prism |
+| Area           | Fields                                                                                          |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| Prescription   | Status, date written, note                                                                      |
+| Spectacles     | Sphere, cylinder, axis, add, horizontal prism, vertical prism                                   |
 | Contact lenses | Power, cylinder, axis, add, both prism axes, back curve, diameter, wear duration, colour, brand |
-| Context | Patient, encounter, facility, prescriber |
+| Context        | Patient, encounter, facility, prescriber                                                        |
 
 Care supplies the context.
 The plug records the current user as the prescriber when the user first edits the answer.
@@ -41,6 +41,9 @@ The read-only view does not substitute the current user.
 The initial status is **Draft**.
 Draft, cancelled, and entered-in-error prescriptions show a notice against lens supply.
 The plug does not create an electronic signature.
+The plug does not show a signature line.
+Care records the author of the response.
+The summary shows the prescriber name, qualification, and registration number.
 
 ## Clinical checks
 
@@ -57,8 +60,54 @@ The plug does not create an electronic signature.
 - Use a valid date that is not after today.
 
 The plug does not set an arbitrary upper limit for optical power.
-It does not transpose cylinders or copy values between eyes.
 It does not select a prism base.
+
+## Eye cell, value dial, transpose, and hints
+
+Each eye cell shows a small lens glyph next to the eye name.
+The glyph is decorative and adds no height to the row.
+It shows:
+
+- A TABO lens. `0°` is on the right for both eyes.
+- The cylinder axis as a solid line, and the meridian `90°` from it as a dashed line.
+- An arrow to the prism base. `In` points to the nose.
+- A shaded segment for the Add.
+
+Under the eye name, a mono line repeats the row in prescription notation.
+An **Other form** line shows the same lens in the other cylinder form.
+The **Transpose cylinder** button rewrites both eyes in the other form.
+The button needs a sphere, a cylinder, and an axis.
+
+Each numeric field opens a value dial.
+Click the field, or press **Alt+Down**, to open the dial.
+The dial does not open on **Tab**.
+The dial has these parts:
+
+| Field                             | Dial                                                        |
+| --------------------------------- | ----------------------------------------------------------- |
+| Sphere, cylinder, power, prism    | A tape. Drag it, scroll it, or click a mark to set a value. |
+| Axis                              | A protractor. Click or drag the arc. Hold Shift to snap 5°. |
+| Add, back curve, diameter, period | Common values as chips. Click a chip to set the value.      |
+
+The **−** and **+** buttons move the value by one step.
+Focus stays in the field while the dial is open.
+Type a value at any time.
+Press **Escape**, press **Tab**, or click outside to close the dial.
+A closed dial does not change the typed value.
+
+Press **Up** or **Down** in a numeric field to move the value by one step.
+Press **Shift** with the key to move by a large step.
+The steps are `0.25 D` and `1 D` for powers, and `1°` and `5°` for the axis.
+
+The edit view lists soft hints under the table for values that are valid but unusual:
+
+- The spherical equivalents differ by `2.50 D` or more between the eyes.
+- A power is above `10 D`.
+- One cylinder is plus and one is minus.
+- The Add values differ between the eyes.
+
+A hint does not block submit.
+The read-only view and the printed page show no glyph, no dial, and no hint.
 Incomplete numeric text stays in the draft and blocks submit.
 The plug never converts an empty numeric field to `0`.
 
@@ -76,7 +125,7 @@ The plug does not silently copy historical values into a new prescription.
 
 Use the Care print action for a saved questionnaire response.
 Care supplies the facility header and patient details.
-The plug supplies the optical tables, note, and signature block.
+The plug supplies the prescriber details, the optical tables, and the note.
 The print view retains the prescription status.
 
 Care owns the response history.
@@ -190,15 +239,15 @@ The production build excludes that preview.
 
 ## Source
 
-| Path | Purpose |
-| --- | --- |
-| `src/manifest.tsx` | Structured-question registration |
-| `src/lib/prescription.ts` | Answer schema and field updates |
-| `src/lib/validate.ts` | Clinical checks and host errors |
-| `src/lib/history.ts` | Stored answer decode and pagination |
+| Path                                  | Purpose                                        |
+| ------------------------------------- | ---------------------------------------------- |
+| `src/manifest.tsx`                    | Structured-question registration               |
+| `src/lib/prescription.ts`             | Answer schema and field updates                |
+| `src/lib/validate.ts`                 | Clinical checks and host errors                |
+| `src/lib/history.ts`                  | Stored answer decode and pagination            |
 | `src/components/vision-prescription/` | Form, read-only tables, history, print content |
-| `src/style/` | Care UI tokens with a plug-specific scope |
-| `public/locale/en.json` | English text |
+| `src/style/`                          | Care UI tokens with a plug-specific scope      |
+| `public/locale/en.json`               | English text                                   |
 
 The MFE uses the `care_teleicu_devices_fe` chassis.
 It uses Vite `6` for the federation build.
