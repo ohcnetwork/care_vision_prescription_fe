@@ -10,7 +10,6 @@ import {
   getPrism,
   getProduct,
 } from "../../lib/prescription";
-import { getPrescriptionIssues } from "../../lib/validate";
 import {
   Table,
   TableBody,
@@ -23,18 +22,17 @@ import {
 interface PrescriptionSummaryProps {
   prescription: VisionPrescription;
   note?: string;
+  showStatus?: boolean;
 }
 
 export function PrescriptionSummary({
   prescription,
   note,
+  showStatus = true,
 }: PrescriptionSummaryProps) {
   const { t, i18n } = useTranslation();
-  const prescriber = prescription.context?.prescriber;
-  const invalid = getPrescriptionIssues(prescription).length > 0;
-  const warning = invalid
-    ? "invalid_record"
-    : prescription.status === "draft"
+  const warning =
+    prescription.status === "draft"
       ? "draft_warning"
       : prescription.status !== "active"
         ? "not_active_warning"
@@ -53,25 +51,27 @@ export function PrescriptionSummary({
       className="vision-summary space-y-4"
       data-prescription-status={prescription.status}
     >
-      <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3 print:grid-cols-3">
-        <div>
-          <dt className="text-xs text-muted-foreground">{t("dateWritten")}</dt>
-          <dd className="mt-1 font-medium">
-            {formatDate(prescription.dateWritten, i18n.resolvedLanguage)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">{t("status")}</dt>
-          <dd className="mt-1 font-medium">{t(prescription.status)}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">{t("prescriber")}</dt>
-          <dd className="mt-1 font-medium">
-            {prescriber?.display ?? t("prescriber_unknown")}
-          </dd>
-        </div>
-      </dl>
-      {warning && (
+      {showStatus && (
+        <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3 print:grid-cols-3">
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              {t("dateWritten")}
+            </dt>
+            <dd className="mt-1 font-medium">
+              {prescription.dateWritten
+                ? formatDate(prescription.dateWritten, i18n.resolvedLanguage)
+                : t("not_recorded")}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">{t("status")}</dt>
+            <dd className="mt-1 font-medium">
+              {showStatus ? t(prescription.status) : t("not_recorded")}
+            </dd>
+          </div>
+        </dl>
+      )}
+      {showStatus && warning && (
         <p
           role="alert"
           className="rounded-md border border-destructive/40 p-3 text-sm font-medium text-destructive"
@@ -194,6 +194,21 @@ export function PrescriptionSummary({
               </TableBody>
             </Table>
           )}
+          {prescription.lensSpecification
+            .filter((lens) => getProduct(lens) === product)
+            .map((lens) =>
+              lens.note?.map((entry, index) => (
+                <p
+                  key={`${lens.eye}-${index}`}
+                  className="text-sm whitespace-pre-wrap"
+                >
+                  <strong>
+                    {t(lens.eye)} — {t("note")}:{" "}
+                  </strong>
+                  {entry.text}
+                </p>
+              )),
+            )}
         </section>
       ))}
       {note && (

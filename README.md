@@ -1,280 +1,56 @@
 # Vision Prescription
 
-This CARE MFE plug adds a **Vision Prescription** structured question.
-It stores spectacle and contact lens values in an encounter questionnaire response.
-It does not need a backend plug.
+See [SCHEMA.md](SCHEMA.md) for saved fields, validation rules, and submission examples.
 
-The type ID is `care_vision_prescription_fe.vision_prescription`.
-The host must support `structuredQuestionTypes` with `persistence: "response"`.
-The local `care_dental_fe` plug supplies the reference for this contract.
+A CARE registered question group for collecting spectacle and contact lens information with custom optical tables and value dials.
 
-## Record a prescription
+The schema follows [FHIR R4 VisionPrescription](https://hl7.org/fhir/R4/visionprescription.html). Add these two groups under **Group** in the questionnaire studio:
 
-1. Add a **Vision Prescription** question in the questionnaire studio.
-2. Use an encounter questionnaire.
-3. Open the questionnaire within a patient encounter.
-4. Enter values for the required eyes and lens types.
-5. Select the prescription status.
-6. Review the values.
-7. Submit the questionnaire.
+- **Vision prescription details** (`care_vision_prescription_fe.prescription_details`): non-repeating status choice and authorization `dateWritten` datetime.
+- **Vision lens specifications** (`care_vision_prescription_fe.vision_prescription`): repeating `lensSpecification` rows with required product (`lens` / `contact`) and eye (`right` / `left`) choices.
 
-Each table shows the right eye (OD) above the left eye (OS).
-The spectacle table comes first.
-The contact tables follow it.
-Blank fields do not mean zero.
-Enter `0` for a plano lens.
+## Recorded fields
 
-The question has these fields:
+Each lens row uses the same 18 child questions: product, eye, sphere, cylinder, axis, add, power, backCurve, diameter, prism amount/base for each plane, wear duration/unit, color, brand, and note. This replaces the previous 47 product/eye-specific child questions. A table cell creates a row when first answered, updates the matching product/eye row, and removes it when its last value is cleared. Zero is an answered plano value.
 
-| Area           | Fields                                                                                          |
-| -------------- | ----------------------------------------------------------------------------------------------- |
-| Prescription   | Status, date written, note                                                                      |
-| Spectacles     | Sphere, cylinder, axis, add, horizontal prism, vertical prism                                   |
-| Contact lenses | Power, cylinder, axis, add, both prism axes, back curve, diameter, wear duration, colour, brand |
-| Context        | Patient, encounter, facility, prescriber                                                        |
+Lens rows submit through CARE's ordinary repeating-group `sub_results`; no prescription JSON blob is stored. `product` maps to a CodeableConcept using the example vision product code system, `eye` and prism bases use FHIR codes, duration maps to a UCUM quantity, and each row's text note maps to a lens Annotation. Status and authorization date remain separate from the lens rows.
 
-Care supplies the context.
-The plug records the current user as the prescriber when the user first edits the answer.
-A saved answer retains that prescriber.
-The read-only view does not substitute the current user.
+The editor supports one lens per product/eye, one prism per horizontal/vertical plane and one note per lens. CARE registered groups currently disallow nested repeating groups, so the prism array is represented by two amount/base pairs. A full FHIR resource would additionally require verified patient/prescriber references and creation metadata; this plugin collects questionnaire answers and does not manufacture those references or submit a FHIR resource. Partial numeric/prism input remains a draft value, not a validated FHIR resource.
 
-The initial status is **Draft**.
-Draft, cancelled, and entered-in-error prescriptions show a notice against lens supply.
-The plug does not create an electronic signature.
-The plug does not show a signature line.
-Care records the author of the response.
-The summary shows the prescriber name, qualification, and registration number.
+CARE owns ordinary-answer validation, drafts, submission, encounter association, response authorship, history and printing. Both groups register submission validators: lens rows reuse the optical checks for numeric steps, axis/cylinder pairs, prisms, contact fields and duplicate product/eye pairs; prescription details check status and valid, non-future calendar dates. These callbacks return errors for the saved child questions and row paths without requiring the legacy prescription envelope. Optical hints and transpose/copy controls remain available. Missing/protected child bindings make the visualization read-only; hidden values are excluded. Duplicate or unknown row identities display an invalid-answer message rather than choosing one silently.
 
-## Clinical checks
+## Existing questionnaires
 
-- Use steps of `0.25 D` for sphere, cylinder, add, and contact power.
-- Supply an axis for every cylinder value, including `0`.
-- Supply a cylinder for every axis.
-- Use a whole axis value from `0` to `180` degrees.
-- Supply the prism amount and base together.
-- Use a prism amount of `0` or more.
-- Use no more than `1` prism on each axis for each lens.
-- Use positive back curve, diameter, and wear duration values.
-- Supply a duration unit with the wear duration.
-- Supply a sphere or power for each lens entry.
-- Use a valid date that is not after today.
+Use the studio's explicit schema repair to switch an existing non-repeating registered group to lens rows, then add the prescription details group. Repair is for future collection; it does not migrate historical answers. Historical non-repeating responses use CARE's ordinary child-answer fallback so their saved values remain readable.
 
-The plug does not set an arbitrary upper limit for optical power.
-It does not select a prism base.
+Older `type: "structured"` JSON prescriptions are not automatically migrated. Preserve those records and use new registered groups for future collection.
 
-## Eye cell, value dial, transpose, and hints
+## Development
 
-Each eye cell shows a small lens glyph next to the eye name.
-The glyph is decorative and adds no height to the row.
-It shows:
-
-- A TABO lens. `0°` is on the right for both eyes.
-- The cylinder axis as a solid line, and the meridian `90°` from it as a dashed line.
-- An arrow to the prism base. `In` points to the nose.
-- A shaded segment for the Add.
-
-Under the eye name, a mono line repeats the row in prescription notation.
-An **Other form** line shows the same lens in the other cylinder form.
-The **Transpose cylinder** button rewrites both eyes in the other form.
-The button needs a sphere, a cylinder, and an axis.
-
-Each numeric field opens a value dial.
-Click the field, or press **Alt+Down**, to open the dial.
-The dial does not open on **Tab**.
-The dial has these parts:
-
-| Field                             | Dial                                                        |
-| --------------------------------- | ----------------------------------------------------------- |
-| Sphere, cylinder, power, prism    | A tape. Drag it, scroll it, or click a mark to set a value. |
-| Axis                              | A protractor. Click or drag the arc. Hold Shift to snap 5°. |
-| Add, back curve, diameter, period | Common values as chips. Click a chip to set the value.      |
-
-The **−** and **+** buttons move the value by one step.
-Focus stays in the field while the dial is open.
-Type a value at any time.
-Press **Escape**, press **Tab**, or click outside to close the dial.
-A closed dial does not change the typed value.
-
-Press **Up** or **Down** in a numeric field to move the value by one step.
-Press **Shift** with the key to move by a large step.
-The steps are `0.25 D` and `1 D` for powers, and `1°` and `5°` for the axis.
-
-The edit view lists soft hints under the table for values that are valid but unusual:
-
-- The spherical equivalents differ by `2.50 D` or more between the eyes.
-- A power is above `10 D`.
-- One cylinder is plus and one is minus.
-- The Add values differ between the eyes.
-
-A hint does not block submit.
-The read-only view and the printed page show no glyph, no dial, and no hint.
-Incomplete numeric text stays in the draft and blocks submit.
-The plug never converts an empty numeric field to `0`.
-
-**Caution:** The backend stores this structured answer without clinical validation.
-The plug validates the form before submit.
-Direct API clients must enforce the same rules.
-
-## Read, compare, and print
-
-Care shows the saved answer in its encounter response views.
-Use **Earlier prescriptions** within the question to read prior answers for the patient.
-Use **Check earlier responses** to request the next page.
-The list retains the entries from earlier pages.
-The plug does not silently copy historical values into a new prescription.
-
-Use the Care print action for a saved questionnaire response.
-Care supplies the facility header and patient details.
-The plug supplies the prescriber details, the optical tables, and the note.
-The print view retains the prescription status.
-
-Care owns the response history.
-This plug does not add a separate timeline resource or a separate prescription API.
-
-## Data contract
-
-The answer uses field names and value types from
-[FHIR VisionPrescription](https://build.fhir.org/visionprescription.html).
-The linked FHIR page is a continuous build.
-This plug uses its `dateWritten` field.
-The answer is **not** a standalone FHIR resource.
-Care context IDs are not FHIR resource references.
-
-The component sends `response.values[0].value` as an array with `1` prescription.
-The host converts that array to JSON text for the backend.
-The host decodes the text before it mounts a read-only component.
-
-```json
-{
-  "schemaVersion": 1,
-  "status": "active",
-  "created": "2026-09-12T10:00:00Z",
-  "dateWritten": "2026-09-12",
-  "context": {
-    "patientId": "<care-patient-id>",
-    "encounterId": "<care-encounter-id>",
-    "facilityId": "<care-facility-id>",
-    "prescriber": {
-      "id": "<care-user-id>",
-      "display": "<prescriber-name>"
-    }
-  },
-  "lensSpecification": [
-    {
-      "product": {
-        "coding": [
-          {
-            "system": "http://terminology.hl7.org/CodeSystem/ex-visionprescriptionproduct",
-            "code": "lens"
-          }
-        ]
-      },
-      "eye": "right",
-      "sphere": -2.25,
-      "cylinder": -0.75,
-      "axis": 90,
-      "add": 1.5,
-      "prism": [{ "amount": 1.5, "base": "out" }]
-    }
-  ]
-}
-```
-
-The example shows the prescription object inside the array.
-The general note stays in `response.note`.
-Product code `lens` identifies spectacles.
-Product code `contact` identifies contact lenses.
-Prism bases are `in`, `out`, `up`, and `down`.
-Duration quantities use UCUM codes `h`, `d`, `wk`, and `mo`.
-
-A draft can contain incomplete numeric text.
-A prism draft can contain `draftPlane` until the user selects a base.
-Submit validation rejects both incomplete states.
-The plug rejects unknown schema versions instead of discarding their fields.
-
-`src/types/host.ts` mirrors the host contract.
-The manifest declares `requires: []` so the studio can show the form without a patient.
-Submit validation still requires a patient, encounter, and prescriber.
-The manifest restricts the question to encounter questionnaires.
-
-## Local use
-
-Install the dependencies:
+From this directory:
 
 ```sh
-npm install
-```
-
-Build the remote:
-
-```sh
-npm run build
-```
-
-Start the remote preview in your terminal:
-
-```sh
-npm run preview
-```
-
-The remote URL is:
-
-```text
-http://localhost:4178/assets/remoteEntry.js
-```
-
-Add the remote through the local Care app configuration.
-Use slug `care_vision_prescription_fe` and the URL above.
-Do not enrol this local build in the CARE App Store.
-
-For an isolated form preview, run:
-
-```sh
-npm run dev
-```
-
-The isolated preview uses sample context.
-It does not save clinical records.
-The production build excludes that preview.
-
-## Source
-
-| Path                                  | Purpose                                        |
-| ------------------------------------- | ---------------------------------------------- |
-| `src/manifest.tsx`                    | Structured-question registration               |
-| `src/lib/prescription.ts`             | Answer schema and field updates                |
-| `src/lib/validate.ts`                 | Clinical checks and host errors                |
-| `src/lib/history.ts`                  | Stored answer decode and pagination            |
-| `src/components/vision-prescription/` | Form, read-only tables, history, print content |
-| `src/style/`                          | Care UI tokens with a plug-specific scope      |
-| `public/locale/en.json`               | English text                                   |
-
-The MFE uses the `care_teleicu_devices_fe` chassis.
-It uses Vite `6` for the federation build.
-Care UI supplies the components and theme.
-The stylesheet stays within `.care-vision-prescription-fe`.
-The plug does not change the host font or host layout.
-Numeric fields use a monospace font.
-
-## Checks
-
-Run the local checks:
-
-```sh
+npm ci
 npm test
 npm run typecheck
 npm run lint
 npm run build
+npm run guard
 ```
 
-Check the remote after you start the preview:
+Place the repository as a real directory at `care_fe/apps/care_vision_prescription_fe`. Start the host with `portless`, or `npm run dev` when portless is unavailable. The host auto-discovers `src/manifest.tsx` and supplies HMR and locale assets.
 
-```sh
-curl -I http://localhost:4178/assets/remoteEntry.js
-```
+`npm run dev` in this directory opens the isolated preview at port 4178. It uses local group bindings and makes no clinical API calls.
 
-The response must have status `200` and `Access-Control-Allow-Origin: *`.
-A successful build alone does not prove that Care can load the remote.
+For a federated remote, run `npm run build` followed by `npm run preview`. The entry is `http://localhost:4178/assets/remoteEntry.js`. Enable it through the host's local configuration with slug `care_vision_prescription_fe`, or `REACT_ENABLED_APPS=ohcnetwork/care_vision_prescription_fe@localhost:4178/assets/remoteEntry.js`. In-tree discovery does not enable a production build.
+
+The remote uses Vite 6, shared React/i18n packages, and CSS scoped to `.care-vision-prescription-fe`. Its production graph excludes the standalone preview. English translations live in `public/locale/en.json`.
+
+## Integration checks
+
+The backend flow in `tests/vision-prescription.spec.ts` creates a test group, fills ordinary child values, restores a draft, checks saved repeating rows, and opens readback/print. It requires a running local backend, a local host, and `CARE_URL`, `CARE_USERNAME`, `CARE_PASSWORD` (plus a suitable local test facility). Set `CARE_LOCAL_PLUGIN=1` for the in-tree dev host; otherwise provide a built plugin preview through `CARE_REMOTE_URL`. It does not run against deployed instances.
+
+`tests/group-preview.spec.ts` checks the isolated visualization and ordinary answer mapping without a backend; set `VISION_PREVIEW_URL` to its dev server URL. Unit tests cover nullable/locked fields, blank versus zero, both prism axes, distinct lens notes, row reconciliation, choice validation and datetime answers. Run backend Playwright tests with `NODE_OPTIONS="--import tsx"` for schema JSON imports.
 
 ## License
 

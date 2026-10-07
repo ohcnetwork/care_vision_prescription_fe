@@ -69,6 +69,7 @@ export const lensSchema = z.strictObject({
   duration: durationSchema.optional(),
   color: z.string().optional(),
   brand: z.string().optional(),
+  note: z.array(z.object({ text: z.string() })).optional(),
 });
 
 export const prescriptionSchema = z.strictObject({

@@ -1,10 +1,11 @@
 import i18next from "i18next";
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 
 import en from "../public/locale/en.json";
 import { Button } from "./components/ui/button";
+import PrescriptionDetailsInput from "./components/vision-prescription/PrescriptionDetailsInput";
 import VisionPrescriptionInput from "./components/vision-prescription/VisionPrescriptionInput";
 import { useTranslation } from "./hooks/useTranslation";
 import {
@@ -13,36 +14,25 @@ import {
   UCUM_SYSTEM,
   VISION_PRESCRIPTION_TYPE,
 } from "./lib/constants";
+import {
+  PRESCRIPTION_DETAILS_SCHEMA,
+  VISION_SCHEMA,
+  groupUpdates,
+  prescriptionValues,
+} from "./lib/group";
 import { PLUG_ROOT_CLASS } from "./lib/plug-root";
 import { type VisionPrescription, newPrescription } from "./lib/prescription";
-import { validateVisionPrescription } from "./lib/validate";
-import { type CareAuthContext, getCareRuntime } from "./types/care";
 import type {
-  QuestionValidationError,
+  GroupField,
+  GroupQuestionDefinition,
+  Question,
   QuestionnaireResponse,
 } from "./types/host";
-
-const patientId = "1a2c71ea-6004-4b6d-8010-942aec8d57c1";
-const encounterId = "0b7c20da-27c8-4302-9b1f-1495c248f474";
-const demoUser = {
-  id: "5d53d212-c4a3-4775-a9c9-082bc584f3af",
-  username: "preview-clinician",
-  first_name: "Preview",
-  last_name: "clinician",
-};
-getCareRuntime().AuthUserContext = createContext<CareAuthContext | null>({
-  user: demoUser,
-});
 
 function samplePrescription(): VisionPrescription {
   return {
     ...newPrescription(),
     status: "active",
-    context: {
-      patientId,
-      encounterId,
-      prescriber: { id: demoUser.id, display: "Preview clinician" },
-    },
     lensSpecification: [
       {
         product: { coding: [{ system: PRODUCT_SYSTEM, code: "lens" }] },
@@ -87,15 +77,57 @@ function Standalone() {
     () => matchMedia("(prefers-color-scheme: dark)").matches,
   );
   const [readOnly, setReadOnly] = useState(false);
-  const [errors, setErrors] = useState<QuestionValidationError[]>([]);
-  const [checked, setChecked] = useState(false);
-  const [response, setResponse] = useState<QuestionnaireResponse>({
-    question_id: "vision",
+  const question: Question = {
+    id: "vision",
     link_id: "vision",
+    text: en.title,
+    type: "group",
     structured_type: VISION_PRESCRIPTION_TYPE,
-    values: [],
-    note: "",
-  });
+    required: true,
+    repeats: true,
+  };
+  const makeFields = (
+    schema: readonly GroupQuestionDefinition[],
+  ): Record<string, GroupField | null> =>
+    Object.fromEntries(
+      schema.map((child) => [
+        child.link_id,
+        {
+          question: { ...child, id: child.link_id, questions: undefined },
+          response: {
+            question_id: child.link_id,
+            link_id: child.link_id,
+            structured_type: null,
+            values: [],
+          },
+          disabled: false,
+          hidden: false,
+          errors: [],
+        },
+      ]),
+    );
+  const [fields] = useState(() => makeFields(VISION_SCHEMA));
+  const [details, setDetails] = useState(() =>
+    makeFields(PRESCRIPTION_DETAILS_SCHEMA),
+  );
+  const [answers, setAnswers] = useState<Record<string, GroupField | null>[]>(
+    [],
+  );
+  const withUpdates = (
+    current: typeof fields,
+    updates: Record<string, Partial<QuestionnaireResponse>>,
+  ) =>
+    Object.fromEntries(
+      Object.entries(current).map(([key, binding]) => [
+        key,
+        binding
+          ? { ...binding, response: { ...binding.response, ...updates[key] } }
+          : null,
+      ]),
+    );
+  const addRow = (
+    updates: Record<string, Partial<QuestionnaireResponse>> = {},
+  ) => setAnswers((current) => [...current, withUpdates(fields, updates)]);
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
     document.body.style.margin = "0";
@@ -132,80 +164,51 @@ function Standalone() {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setResponse((current) => ({
-                    ...current,
-                    values: [
-                      {
-                        type: VISION_PRESCRIPTION_TYPE,
-                        value: [samplePrescription()],
-                      },
-                    ],
-                    note: "",
-                  }));
-                  setErrors([]);
-                  setChecked(false);
+                  const sample = samplePrescription();
+                  setAnswers(
+                    sample.lensSpecification.map((lens) =>
+                      withUpdates(
+                        fields,
+                        groupUpdates(fields, prescriptionValues(lens)),
+                      ),
+                    ),
+                  );
                 }}
               >
                 {t("sample_values")}
               </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  const value = response.values[0]?.value;
-                  setErrors(
-                    validateVisionPrescription(
-                      Array.isArray(value) ? value : [],
-                      "vision",
-                      true,
-                    ),
-                  );
-                  setChecked(true);
-                }}
-              >
-                {t("test_answer")}
-              </Button>
             </div>
           </header>
-          <VisionPrescriptionInput
-            question={{
-              id: "vision",
-              link_id: "vision",
-              text: en.title,
-              type: "structured",
-              structured_type: VISION_PRESCRIPTION_TYPE,
-              required: true,
-            }}
-            response={response}
-            onChange={(values, note) => {
-              setResponse((current) => ({
-                ...current,
-                values,
-                note: note ?? current.note,
-              }));
-              setChecked(false);
-            }}
+          <PrescriptionDetailsInput
+            question={{ ...question, repeats: false }}
+            fields={details}
+            rows={[]}
+            addRow={() => {}}
             disabled={readOnly}
-            errors={errors}
-            clearError={() => setErrors([])}
-            patientId={patientId}
-            encounterId={encounterId}
+            onChange={(updates) =>
+              setDetails((current) => withUpdates(current, updates))
+            }
           />
-          {checked && (
-            <div
-              role={errors.length > 0 ? "alert" : "status"}
-              className="text-sm print:hidden"
-            >
-              {errors.length > 0 ? (
-                <ul className="list-inside list-disc text-destructive">
-                  {errors.map((error, index) => (
-                    <li key={index}>{error.error}</li>
-                  ))}
-                </ul>
-              ) : (
-                t("valid_answer")
-              )}
-            </div>
-          )}
+          <VisionPrescriptionInput
+            question={question}
+            fields={fields}
+            rows={answers.map((row) => ({
+              fields: row,
+              onChange: (updates) =>
+                setAnswers((current) =>
+                  current.map((entry) =>
+                    entry === row ? withUpdates(entry, updates) : entry,
+                  ),
+                ),
+              remove: () =>
+                setAnswers((current) =>
+                  current.filter((entry) => entry !== row),
+                ),
+            }))}
+            addRow={addRow}
+            onChange={() => {}}
+            disabled={readOnly}
+          />
           <details className="print:hidden">
             <summary className="cursor-pointer text-sm">
               {t("answer_data")}
@@ -214,7 +217,17 @@ function Standalone() {
               data-testid="answer-data"
               className="mt-3 overflow-auto rounded-md bg-muted p-4 text-xs"
             >
-              {JSON.stringify(response, null, 2)}
+              {JSON.stringify(
+                {
+                  question_id: question.id,
+                  values: [],
+                  sub_results: answers.map((row) =>
+                    Object.values(row).map((field) => field?.response),
+                  ),
+                },
+                null,
+                2,
+              )}
             </pre>
           </details>
         </div>

@@ -1,9 +1,5 @@
-/**
- * Host contract subset. Keep in sync with care_fe/src/pluginTypes.ts,
- * components/QuestionnaireV2/structured/{pluginRegistry,types}.ts, and
- * types/questionnaire/{form,question,batch,questionnaire}.ts.
- * Mirrored from care_dental_fe at b582ec644ecf3986c6de73a2f0a3ab2e69edc7ae.
- */
+/** Subset of the host questionnaire group contract. Keep in sync with
+ * care_fe/src/components/QuestionnaireV2/groups/registry.ts and question types. */
 import type { ComponentType } from "react";
 
 export interface Code {
@@ -17,10 +13,35 @@ export interface Question {
   link_id: string;
   text: string;
   description?: string;
-  type: string;
+  type:
+    | "group"
+    | "display"
+    | "boolean"
+    | "decimal"
+    | "integer"
+    | "date"
+    | "dateTime"
+    | "time"
+    | "string"
+    | "text"
+    | "url"
+    | "choice"
+    | "quantity"
+    | "structured";
   structured_type?: string;
   required?: boolean;
   read_only?: boolean;
+  repeats?: boolean;
+  questions?: Question[];
+  answer_option?: { value: string; display?: string }[];
+  enable_when?: ({ question: string } & (
+    | {
+        operator: "greater" | "less" | "greater_or_equals" | "less_or_equals";
+        answer: number;
+      }
+    | { operator: "exists" | "equals" | "not_equals"; answer: boolean }
+    | { operator: "equals" | "not_equals"; answer: string }
+  ))[];
 }
 
 export interface ResponseValue {
@@ -35,11 +56,15 @@ export interface QuestionnaireResponse {
   structured_type: string | null;
   link_id: string;
   values: ResponseValue[];
+  sub_results?: QuestionnaireResponse[][];
   note?: string;
 }
 
+export type ResponsePath = { questionId: string; rowIndex: number }[];
+
 export interface QuestionValidationError {
   question_id: string;
+  response_path?: ResponsePath;
   error?: string;
   msg?: string;
   type?: string;
@@ -48,62 +73,55 @@ export interface QuestionValidationError {
 export type SubjectType =
   "patient" | "encounter" | "location" | "device" | "facility";
 
-export type StructuredContextKey = "patientId" | "encounterId" | "facilityId";
+export type GroupQuestionDefinition = Omit<Question, "id" | "questions"> & {
+  questions?: GroupQuestionDefinition[];
+};
 
-export interface StructuredInputProps {
+export interface GroupBuilderProps {
+  question: Question;
+  onChange: (patch: Partial<Question>) => void;
+}
+
+export interface GroupField {
   question: Question;
   response: QuestionnaireResponse;
-  onChange: (values: ResponseValue[], note?: string) => void;
-  onInitializeResponse?: (values: ResponseValue[]) => void;
   disabled: boolean;
-  errors: QuestionValidationError[];
-  clearError: () => void;
-  patientId?: string;
-  encounterId?: string;
-  facilityId?: string;
-  questionnaireId?: string;
-  questionnaireSlug?: string;
+  hidden: boolean;
+  errors: readonly QuestionValidationError[];
 }
 
-export interface StructuredBatchEntry {
-  url: string;
-  method: "POST" | "PUT" | "PATCH";
-  reference_id: string;
-  body: unknown;
+export interface GroupRow {
+  fields: Record<string, GroupField | null>;
+  onChange: (updates: Record<string, Partial<QuestionnaireResponse>>) => void;
+  remove: () => void;
 }
 
-export interface StructuredRequestContext {
-  patientId?: string;
-  encounterId?: string;
-  facilityId?: string;
-  questionId: string;
+export interface GroupInputProps {
+  question: Question;
+  fields: Record<string, GroupField | null>;
+  onChange: (updates: Record<string, Partial<QuestionnaireResponse>>) => void;
+  disabled: boolean;
+  rows: GroupRow[];
+  addRow: (updates?: Record<string, Partial<QuestionnaireResponse>>) => void;
 }
 
-export type StructuredRequestBuilder = (
-  data: unknown[],
-  context: StructuredRequestContext,
-) => Promise<StructuredBatchEntry[]>;
-
-export type PluginStructuredPersistence =
-  | { persistence?: "batch"; buildRequests: StructuredRequestBuilder }
-  | { persistence: "response"; buildRequests?: undefined };
-
-export type PluginStructuredTypeDefinition = {
+export interface RegisteredGroupDefinition {
   type: string;
-  component: ComponentType<StructuredInputProps>;
-  requires: readonly StructuredContextKey[];
-  subjects: readonly SubjectType[];
-  draftPolicy: "serialize" | "exclude";
   label: string;
   icon?: ComponentType<{ className?: string }>;
+  subjects: readonly SubjectType[];
+  repeats?: boolean;
+  schema: readonly GroupQuestionDefinition[];
+  builder: ComponentType<GroupBuilderProps>;
+  component: ComponentType<GroupInputProps>;
   validate?: (
-    data: unknown[],
-    questionId: string,
-    required: boolean,
+    question: Question,
+    responses: Record<string, QuestionnaireResponse>,
+    path: ResponsePath,
   ) => QuestionValidationError[];
-} & PluginStructuredPersistence;
+}
 
 export interface PluginManifest {
   plugin: string;
-  structuredQuestionTypes?: readonly PluginStructuredTypeDefinition[];
+  registeredQuestionGroups?: readonly RegisteredGroupDefinition[];
 }

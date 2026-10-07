@@ -5,6 +5,7 @@ import type { QuestionValidationError } from "../types/host";
 import { DURATION_LABELS, PLUGIN_SLUG } from "./constants";
 import {
   type Eye,
+  type LensSpecification,
   type NumericField,
   type Product,
   type VisionPrescription,
@@ -79,97 +80,111 @@ export function getPrescriptionIssues(
     const product = getProduct(lens);
     const eye = lens.eye;
     const lensKey = `${product}.${eye}`;
-    const error = (field: string, message: MessageKey) =>
-      add(fieldKey(product, eye, field), message, product, eye);
-
-    if (seen.has(lensKey)) error("eye", "error_duplicate_eye");
+    if (seen.has(lensKey))
+      add(fieldKey(product, eye, "eye"), "error_duplicate_eye", product, eye);
     seen.add(lensKey);
 
-    const primary = product === "lens" ? "sphere" : "power";
-    if (lens[primary] === undefined) {
-      error(
-        primary,
-        product === "lens" ? "error_sphere_required" : "error_power_required",
-      );
-    }
-    for (const field of NUMERIC_FIELDS) {
-      const value = lens[field];
-      if (value === undefined) continue;
-      if (typeof value !== "number" || !Number.isFinite(value)) {
-        error(field, "error_number");
-        continue;
-      }
-      if (
-        DIOPTRE_FIELDS.has(field) &&
-        (Math.abs(value) > Number.MAX_SAFE_INTEGER / 4 ||
-          Math.abs(value * 4 - Math.round(value * 4)) > 1e-8)
-      ) {
-        error(field, "error_quarter");
-      }
-      if (
-        field === "axis" &&
-        (!Number.isInteger(value) || value < 0 || value > 180)
-      ) {
-        error(field, "error_axis");
-      }
-      if ((field === "backCurve" || field === "diameter") && value <= 0) {
-        error(field, "error_positive");
-      }
-      if (
-        (product === "lens" &&
-          ["power", "backCurve", "diameter"].includes(field)) ||
-        (product === "contact" && field === "sphere")
-      ) {
-        error(field, "error_product_field");
-      }
-    }
+    issues.push(...getLensIssues(lens));
+  }
+  return issues;
+}
 
-    if (lens.cylinder !== undefined && lens.axis === undefined) {
-      error("axis", "error_axis_required");
-    }
-    if (lens.axis !== undefined && lens.cylinder === undefined) {
-      error("cylinder", "error_cylinder_required");
-    }
-
-    const planes = new Set<string>();
-    for (const prism of lens.prism ?? []) {
-      const plane = prism.base
-        ? prismPlane(prism.base)
-        : (prism.draftPlane ?? "horizontal");
-      if (typeof prism.amount !== "number" || !Number.isFinite(prism.amount)) {
-        error(`prism.${plane}.amount`, "error_prism_amount");
-      } else if (prism.amount < 0) {
-        error(`prism.${plane}.amount`, "error_nonnegative");
-      }
-      if (!prism.base) {
-        error(`prism.${plane}.base`, "error_prism_base");
-      } else {
-        if (planes.has(plane))
-          error(`prism.${plane}.base`, "error_prism_duplicate");
-        planes.add(plane);
-        if (prism.draftPlane !== undefined) {
-          error(`prism.${plane}.base`, "error_prism_draft");
-        }
-      }
-    }
-
-    if (lens.duration !== undefined) {
-      const { value, code, unit } = lens.duration;
-      if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-        error("duration", "error_duration");
-      }
-      if (!code || unit !== DURATION_LABELS[code]) {
-        error("duration", "error_duration_unit");
-      }
+/** Optical rules shared by the group callback and legacy prescription validation. */
+export function getLensIssues(lens: LensSpecification): PrescriptionIssue[] {
+  const issues: PrescriptionIssue[] = [];
+  const product = getProduct(lens);
+  const eye = lens.eye;
+  const error = (field: string, message: MessageKey) =>
+    issues.push({
+      field: fieldKey(product, eye, field),
+      message,
+      product,
+      eye,
+    });
+  const primary = product === "lens" ? "sphere" : "power";
+  if (lens[primary] === undefined) {
+    error(
+      primary,
+      product === "lens" ? "error_sphere_required" : "error_power_required",
+    );
+  }
+  for (const field of NUMERIC_FIELDS) {
+    const value = lens[field];
+    if (value === undefined) continue;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      error(field, "error_number");
+      continue;
     }
     if (
-      product === "lens" &&
-      (lens.duration !== undefined ||
-        lens.color !== undefined ||
-        lens.brand !== undefined)
+      DIOPTRE_FIELDS.has(field) &&
+      (Math.abs(value) > Number.MAX_SAFE_INTEGER / 4 ||
+        Math.abs(value * 4 - Math.round(value * 4)) > 1e-8)
     ) {
-      error("product", "error_product_field");
+      error(field, "error_quarter");
     }
+    if (
+      field === "axis" &&
+      (!Number.isInteger(value) || value < 0 || value > 180)
+    ) {
+      error(field, "error_axis");
+    }
+    if ((field === "backCurve" || field === "diameter") && value <= 0) {
+      error(field, "error_positive");
+    }
+    if (
+      (product === "lens" &&
+        ["power", "backCurve", "diameter"].includes(field)) ||
+      (product === "contact" && field === "sphere")
+    ) {
+      error(field, "error_product_field");
+    }
+  }
+
+  if (lens.cylinder !== undefined && lens.axis === undefined) {
+    error("axis", "error_axis_required");
+  }
+  if (lens.axis !== undefined && lens.cylinder === undefined) {
+    error("cylinder", "error_cylinder_required");
+  }
+
+  const planes = new Set<string>();
+  for (const prism of lens.prism ?? []) {
+    const plane = prism.base
+      ? prismPlane(prism.base)
+      : (prism.draftPlane ?? "horizontal");
+    if (typeof prism.amount !== "number" || !Number.isFinite(prism.amount)) {
+      error(`prism.${plane}.amount`, "error_prism_amount");
+    } else if (prism.amount < 0) {
+      error(`prism.${plane}.amount`, "error_nonnegative");
+    }
+    if (!prism.base) {
+      error(`prism.${plane}.base`, "error_prism_base");
+    } else {
+      if (planes.has(plane))
+        error(`prism.${plane}.base`, "error_prism_duplicate");
+      planes.add(plane);
+      if (prism.draftPlane !== undefined) {
+        error(`prism.${plane}.base`, "error_prism_draft");
+      }
+    }
+  }
+
+  if (lens.duration !== undefined) {
+    const { value, code, unit } = lens.duration;
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+      error("duration", "error_duration");
+    }
+    if (!code || unit !== DURATION_LABELS[code]) {
+      error("duration", "error_duration_unit");
+    }
+  }
+  if (
+    product === "lens" &&
+    (lens.duration !== undefined ||
+      lens.color !== undefined ||
+      lens.brand !== undefined)
+  ) {
+    error("product", "error_product_field");
   }
   return issues;
 }
